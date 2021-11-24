@@ -31,6 +31,7 @@ class data_base(object):
                 labels.append(label.strip())
         return texts, labels
 
+
     @staticmethod
     def _read_data(path):
         """

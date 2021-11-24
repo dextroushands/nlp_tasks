@@ -5,6 +5,8 @@ import json
 import os
 from keras_models.bilstm_crf import BilstmCRF
 from trainer.train_base import TrainBase
+from data_processor.classifier_data_generator import ClassifierDataGenerator
+from data_processor.ner_data_generator import NERDataGenerator
 
 class NERTask(TrainBase):
     '''
@@ -15,6 +17,9 @@ class NERTask(TrainBase):
         self.loss = "loss"
 
         super(NERTask, self).__init__(task_config)
+        self.data_generator = NERDataGenerator(task_config)
+        self.vocab_size = self.data_generator.vocab_size
+        self.word_vectors = self.data_generator.word_vectors
 
     def build_model(self, vocab_size, word_vecotrs):
         '''

@@ -47,6 +47,19 @@ class tokenizer(data_base):
         ids = [labels_to_index.get(token, nan_id) for token in labels]
         return ids
 
+    def seq2seq_label_process(self, labels):
+        '''
+        seq2seq任务处理label数据，在头尾添加<SOS>,<EOS>
+        :param labels:
+        :return:
+        '''
+        res = []
+        for line in labels:
+            line.insert(0, "<SOS>")
+            line.insert(-1, "<EOS>")
+            res.append(line)
+        return res
+
     def ids_to_tokens(self, ids, tokens_to_index):
         '''
         索引转成token
@@ -92,6 +105,7 @@ class tokenizer(data_base):
         word_to_index = dict(zip(vocab, list(range(len(vocab)))))
 
         return word_to_index
+
 
     def label_to_index(self, labels):
         '''

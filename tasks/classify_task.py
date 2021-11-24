@@ -7,7 +7,9 @@ from data_processor.base_processor import data_base
 from data_processor.tokenizer import tokenizer
 from keras_models.text_cnn import TextCnn
 from trainer.train_base import TrainBase
-from keras_models.transformer import TransformerNet
+from keras_models.transformer_encoder import TransformerNet
+from data_processor.classifier_data_generator import ClassifierDataGenerator
+from data_processor.ner_data_generator import NERDataGenerator
 
 
 class ClassifyTask(TrainBase):
@@ -19,6 +21,9 @@ class ClassifyTask(TrainBase):
         self.loss = "loss"
 
         super(ClassifyTask, self).__init__(task_config)
+        self.data_generator = ClassifierDataGenerator(task_config)
+        self.vocab_size = self.data_generator.vocab_size
+        self.word_vectors = self.data_generator.word_vectors
 
     def build_model(self, vocab_size, word_vecotrs):
         '''
@@ -57,7 +62,7 @@ class ClassifyTask(TrainBase):
 
         with tf.name_scope('ClassifyTask/losses'):
 
-            metrics = dict([(metric.name, metric) for metric in metrics])
+            # metrics = dict([(metric.name, metric) for metric in metrics])
             if self.config['num_classes'] > 1:
                 losses = tf.keras.losses.sparse_categorical_crossentropy(labels,
                                                                          tf.cast(model_outputs['logits'], tf.float32),
@@ -109,7 +114,9 @@ if __name__=='__main__':
     model = classifier.build_model(vocab_size, word_vectors)
     # if os.path.exists(config['ckpt_model_path']):
     #     classifier.check_exist_model(model)
-    classifier.train(model)
+    # classifier.train(model)
+    classifier.fit_train(model)
+
 
 
 

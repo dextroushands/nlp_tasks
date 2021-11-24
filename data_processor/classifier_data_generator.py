@@ -98,7 +98,7 @@ class ClassifierDataGenerator(embedding):
         :param rate:
         :return:
         '''
-        np.random.shuffle(data)
+        # np.random.shuffle(data)
         perm = int(len(data) * rate)
         train_data = data[perm:]
         eval_data = data[:perm]

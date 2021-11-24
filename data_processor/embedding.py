@@ -5,6 +5,11 @@ from data_processor.tokenizer import tokenizer
 import numpy as np
 import h5py
 import logging
+from collections import Counter
+import pandas as pd
+from itertools import chain
+from gensim import corpora, models
+import gensim
 logger = logging.getLogger(__name__)
 
 class embedding(tokenizer):
@@ -53,6 +58,30 @@ class embedding(tokenizer):
         '''
         file_path = os.path.join(self.config['output_path'], name + '.npy')
         np.save(file_path, vectors)
+
+    @staticmethod
+    def trans_to_tf_idf(inputs, dictionary, tf_idf_model):
+        vocab_size = len(dictionary)
+        input_ids = []
+        for question in inputs:
+            # question_ids = []
+            # for question in questions:
+            bow_vec = dictionary.doc2bow(question)
+            tfidf_vec = tf_idf_model[bow_vec]
+            vec = [0] * vocab_size
+            for item in tfidf_vec:
+                vec[item[0]] = item[1]
+            # question_ids.append(vec)
+            input_ids.append(vec)
+        return input_ids
+
+    @staticmethod
+    def train_tf_idf(inputs):
+        sentences = inputs
+        dictionary = corpora.Dictionary(sentences)
+        corpus = [dictionary.doc2bow(sentence) for sentence in sentences]
+        tfidf_model = models.TfidfModel(corpus)
+        return dictionary, tfidf_model
 
     def get_one_hot_vectors(self, tokens):
         '''

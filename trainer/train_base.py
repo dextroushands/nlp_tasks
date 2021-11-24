@@ -10,9 +10,10 @@ class TrainBase(BaseModel):
     '''
     def __init__(self, train_config):
         self.epoches = train_config['epoches']
-        self.data_generator = NERDataGenerator(train_config)
-        self.vocab_size = self.data_generator.vocab_size
-        self.word_vectors = self.data_generator.word_vectors
+        # self.data_generator = NERDataGenerator(train_config)
+        self.data_generator = None
+        # self.vocab_size = self.data_generator.vocab_size
+        # self.word_vectors = self.data_generator.word_vectors
         super(TrainBase, self).__init__(train_config)
 
     def train(self, model):
@@ -20,6 +21,7 @@ class TrainBase(BaseModel):
         训练过程
         :return:
         '''
+        model.summary()
         optimizer = self.get_optimizer()
         metrics = self.build_metrics()
         batch_num = 0
@@ -48,4 +50,27 @@ class TrainBase(BaseModel):
             if mean_acc > best_acc:
                 best_acc = mean_acc
                 self.save_ckpt_model(model)
+
+    def fit_train(self, model):
+        '''
+        使用fit训练模型
+        :return:
+        '''
+        optimizer = self.get_optimizer()
+        metrics = self.build_metrics()
+
+        model = self.compile_model(model,
+                             optimizer=optimizer,
+                             train_step=self.train_step,
+                             validation_step=self.validation_step,
+                             metrics=metrics)
+        model.summary()
+        dataset = self.data_generator.gen_data(self.data_generator.train_data, self.data_generator.train_label)
+        valid_data = self.data_generator.gen_data(self.data_generator.eval_data, self.data_generator.eval_label)
+        # dataset = dataset.repeat()
+        # valid_data = valid_data.repeat()
+        # dataset = self.build_inputs(data_)
+        logs = model.fit(dataset, epochs=2, steps_per_epoch=3, validation_data=valid_data, validation_steps=1)
+        # self.assertIn("loss", logs.history)
+        # self.assertIn("accuracy", logs.history)
 

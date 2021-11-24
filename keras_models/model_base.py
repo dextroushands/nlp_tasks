@@ -1,5 +1,7 @@
 import os
 import tensorflow as tf
+import functools
+from typing import Any, Callable, Optional
 
 
 class BaseModel(tf.keras.Model):
@@ -42,6 +44,41 @@ class BaseModel(tf.keras.Model):
         """
         del training
         return []
+
+    def compile_model(self,
+                      model: tf.keras.Model,
+                      optimizer: tf.keras.optimizers.Optimizer,
+                      loss=None,
+                      train_step: Optional[Callable[..., Any]] = None,
+                      validation_step: Optional[Callable[..., Any]] = None,
+                      **kwargs) -> tf.keras.Model:
+        """Compiles the model with objects created by the task.
+
+        The method should not be used in any customized training implementation.
+
+        Args:
+          model: a keras.Model.
+          optimizer: the keras optimizer.
+          loss: a callable/list of losses.
+          train_step: optional train step function defined by the task.
+          validation_step: optional validation_step step function defined by the
+            task.
+          **kwargs: other kwargs consumed by keras.Model compile().
+
+        Returns:
+          a compiled keras.Model.
+        """
+        if bool(loss is None) == bool(train_step is None):
+            raise ValueError("`loss` and `train_step` should be exclusive to "
+                             "each other.")
+        model.compile(optimizer=optimizer, loss=loss, **kwargs)
+
+        if train_step:
+            model.train_step = functools.partial(
+                train_step, model=model, optimizer=model.optimizer)
+        if validation_step:
+            model.test_step = functools.partial(validation_step, model=model)
+        return model
 
     def process_metrics(self, metrics, labels, model_outputs):
         '''
@@ -95,6 +132,8 @@ class BaseModel(tf.keras.Model):
         '''
         if isinstance(inputs, tuple) and len(inputs) == 2:
             features, labels = inputs
+        elif isinstance(inputs, tuple) and len(inputs) == 1:
+            features, labels = inputs[0]['input_word_ids'], inputs[0]['input_target_ids']
         else:
             features, labels = inputs['input_word_ids'], inputs['input_target_ids']
         with tf.GradientTape() as tape:
@@ -133,6 +172,8 @@ class BaseModel(tf.keras.Model):
         '''
         if isinstance(inputs, tuple) and len(inputs) == 2:
             features, labels = inputs
+        elif isinstance(inputs, tuple) and len(inputs) == 1:
+            features, labels = inputs[0]['input_word_ids'], inputs[0]['input_target_ids']
         else:
             features, labels = inputs['input_word_ids'], inputs['input_target_ids']
 
