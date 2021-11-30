@@ -112,10 +112,16 @@ if __name__=='__main__':
     word_vectors = classifier.word_vectors
     print(len(word_vectors))
     model = classifier.build_model(vocab_size, word_vectors)
+    config = model.get_config()
+
+    # At loading time, register the custom objects with a `custom_object_scope`:
+    # custom_objects = {"GatherLayer": GatherLayer}
+    # with tf.keras.utils.custom_object_scope(custom_objects):
+    #     new_model = tf.keras.Model.from_config(config)
     # if os.path.exists(config['ckpt_model_path']):
     #     classifier.check_exist_model(model)
-    # classifier.train(model)
-    classifier.fit_train(model)
+    classifier.train(model)
+    # classifier.fit_train(model)
 
 
 

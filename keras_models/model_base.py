@@ -225,13 +225,38 @@ class BaseModel(tf.keras.Model):
         # checkpoint.save(model_save_path + '/model.ckpt')
         model.save_weights(model_save_path)
 
-    def save_pb_model(self, model):
+    def save_pb_model(self, model:tf.keras.Model, checkpoint_dir=None, restore_model_using_load_weights=True):
         '''
         将模型保存成pb格式
         :param model:
         :return:
         '''
-        raise NotImplemented
+        save_path = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())),
+                                 self.config["export_model_path"])
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        model_export_path = os.path.join(save_path, self.config["model_name"])
+
+        if checkpoint_dir:
+            # Keras compile/fit() was used to save checkpoint using
+            # model.save_weights().
+            if restore_model_using_load_weights:
+                model_weight_path = os.path.join(checkpoint_dir, 'checkpoint')
+                assert tf.io.gfile.exists(model_weight_path)
+                model.load_weights(model_weight_path)
+
+            # tf.train.Checkpoint API was used via custom training loop logic.
+            else:
+                checkpoint = tf.train.Checkpoint(model=model)
+
+                # Restores the model from latest checkpoint.
+                latest_checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+                assert latest_checkpoint_file
+
+                checkpoint.restore(
+                    latest_checkpoint_file).assert_existing_objects_matched()
+
+        model.save(model_export_path, include_optimizer=False, save_format='tf')
 
     def load_ckpt_model(self, model, path, model_name):
         '''

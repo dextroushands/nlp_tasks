@@ -1,6 +1,7 @@
 import tensorflow as tf
-# from official.nlp.transformer.transformer import Transformer
 from official.nlp.modeling.layers import Transformer
+
+
 
 
 class TransformerNet(tf.keras.Model):
@@ -14,23 +15,38 @@ class TransformerNet(tf.keras.Model):
         self.word_vectors = word_vectors
 
         # 定义输入
-        word_ids = tf.keras.layers.Input(shape=(None,), dtype=tf.int64, name='input_word_ids')
-
-        # embedding层
-        with tf.name_scope('embedding'):
-            if not self.config['use_word2vec']:
-                embedding_w = tf.keras.initializers.glorot_normal()(
-                    shape=[self.vocab_size, self.config['emebdding_size']],
-                    dtype=tf.float32)
-            else:
-                embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), name='embedding_w')
+        word_ids = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name='input_word_ids')
 
         class GatherLayer(tf.keras.layers.Layer):
-            def call(self, indices, params):
-                return tf.gather(params, indices, name='embedded_words')
+            def __init__(self, config, vocab_size, word_vectors):
+                super(GatherLayer, self).__init__()
+                self.config = config
+
+                self.vocab_size = vocab_size
+                self.word_vectors = word_vectors
+
+            def build(self, input_shape):
+                with tf.name_scope('embedding'):
+                    if not self.config['use_word2vec']:
+                        self.embedding_w = tf.keras.initializers.glorot_normal()(
+                            shape=[self.vocab_size, self.config['embedding_size']],
+                            dtype=tf.float32)
+                    else:
+                        self.embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), trainable=True,
+                                                  name='embedding_w')
+                self.build = True
+
+            def call(self, indices):
+                return tf.gather(self.embedding_w, indices, name='embedded_words')
+
+            def get_config(self):
+                config = super(GatherLayer, self).get_config()
+
+                return config
+
 
         # 利用词嵌入矩阵将输入数据转成词向量，shape=[batch_size, seq_len, embedding_size]
-        embedded_words = GatherLayer()(word_ids, embedding_w)
+        embedded_words = GatherLayer(config, vocab_size, word_vectors)(word_ids)
 
         #构建transformer层
         trans_layer = Transformer(
@@ -59,7 +75,13 @@ class TransformerNet(tf.keras.Model):
 
         self.logits = full_connect_layer
 
-        outputs = dict(logits=self.logits)
+        outputs = dict(logits=self.logits, sequence_output=sequence_output)
 
         super(TransformerNet, self).__init__(inputs=[word_ids], outputs=outputs)
+
+
+
+
+
+
 

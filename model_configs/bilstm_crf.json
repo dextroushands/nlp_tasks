@@ -18,7 +18,8 @@
   "output_path": "/Users/donruo/Desktop/project/nlp_models/output_path/ner",
   "word2vec_path": "/Users/donruo/Desktop/project/search_algorithm/query_understand/short_text_classify/data/sgns.sogou.char",
   "use_word2vec": 1,
-  "ckpt_model_path": "/Users/donruo/Desktop/project/nlp_models/output_path/ckpt_model/ner",
+  "ckpt_model_path": "output_path/ckpt_model",
+  "export_model_path": "output_path/export_model",
   "data_path": "/Users/donruo/Desktop/project/nlp_models/corpus/pd2014/",
   "test_data": "/Users/donruo/Desktop/project/search_algorithm/query_understand/short_text_classify/data/news/test.tsv"
 }

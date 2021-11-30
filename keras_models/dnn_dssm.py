@@ -14,22 +14,37 @@ class DSSM(tf.keras.Model):
         sim_query = tf.keras.layers.Input(shape=(None,), dtype=tf.int64, name='input_y_ids')
 
         # embedding层
-        with tf.name_scope('embedding'):
-            if not self.config['use_word2vec']:
-                embedding_w = tf.keras.initializers.glorot_normal()(
-                    shape=[self.vocab_size, self.config['emebdding_size']],
-                    dtype=tf.float32)
-            else:
-                embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), name='embedding_w')
-
         class GatherLayer(tf.keras.layers.Layer):
-            def call(self, indices, params):
-                return tf.gather(params, indices, name='embedded_words')
+            def __init__(self, config, vocab_size, word_vectors):
+                super(GatherLayer, self).__init__()
+                self.config = config
+
+                self.vocab_size = vocab_size
+                self.word_vectors = word_vectors
+
+            def build(self, input_shape):
+                with tf.name_scope('embedding'):
+                    if not self.config['use_word2vec']:
+                        self.embedding_w = tf.keras.initializers.glorot_normal()(
+                            shape=[self.vocab_size, self.config['embedding_size']],
+                            dtype=tf.float32)
+                    else:
+                        self.embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), trainable=True,
+                                                       name='embedding_w')
+                self.build = True
+
+            def call(self, indices):
+                return tf.gather(self.embedding_w, indices, name='embedded_words')
+
+            def get_config(self):
+                config = super(GatherLayer, self).get_config()
+
+                return config
 
         # 利用词嵌入矩阵将输入数据转成词向量，shape=[batch_size, seq_len, embedding_size]
-        query_embedding = GatherLayer()(query, embedding_w)
+        query_embedding = GatherLayer(config, vocab_size, word_vectors)(query)
         query_embedding = tf.reshape(query_embedding, [self.config['batch_size'], self.config['seq_len']*self.config['embedding_size']])
-        sim_query_embedding = GatherLayer()(sim_query, embedding_w)
+        sim_query_embedding = GatherLayer(config, vocab_size, word_vectors)(sim_query)
         sim_query_embedding = tf.reshape(sim_query_embedding, [self.config['batch_size'], self.config['seq_len']*self.config['embedding_size']])
 
         #3层dnn提取特征[300,300,128], 输出为[batch_size, dense_embedding]

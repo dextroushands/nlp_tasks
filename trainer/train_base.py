@@ -1,8 +1,7 @@
 import tensorflow as tf
 
 from keras_models.model_base import BaseModel
-from data_processor.classifier_data_generator import ClassifierDataGenerator
-from data_processor.ner_data_generator import NERDataGenerator
+
 
 class TrainBase(BaseModel):
     '''
@@ -10,10 +9,8 @@ class TrainBase(BaseModel):
     '''
     def __init__(self, train_config):
         self.epoches = train_config['epoches']
-        # self.data_generator = NERDataGenerator(train_config)
         self.data_generator = None
-        # self.vocab_size = self.data_generator.vocab_size
-        # self.word_vectors = self.data_generator.word_vectors
+
         super(TrainBase, self).__init__(train_config)
 
     def train(self, model):
@@ -49,7 +46,9 @@ class TrainBase(BaseModel):
                     mean_acc = sum_acc/count
             if mean_acc > best_acc:
                 best_acc = mean_acc
+                print('save model')
                 self.save_ckpt_model(model)
+                self.save_pb_model(model)
 
     def fit_train(self, model):
         '''
