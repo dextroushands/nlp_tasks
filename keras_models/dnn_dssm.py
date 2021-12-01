@@ -25,9 +25,9 @@ class DSSM(tf.keras.Model):
             def build(self, input_shape):
                 with tf.name_scope('embedding'):
                     if not self.config['use_word2vec']:
-                        self.embedding_w = tf.keras.initializers.glorot_normal()(
+                        self.embedding_w = tf.Variable(tf.keras.initializers.glorot_normal()(
                             shape=[self.vocab_size, self.config['embedding_size']],
-                            dtype=tf.float32)
+                            dtype=tf.float32), trainable=True, name='embedding_w')
                     else:
                         self.embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), trainable=True,
                                                        name='embedding_w')
@@ -76,10 +76,10 @@ class DSSM(tf.keras.Model):
         # cond = (self.similarity > 0.0)
         pos = tf.where(cond, tf.square(self.similarity), 1 - tf.square(self.similarity))
         neg = tf.where(cond, 1 - tf.square(self.similarity), tf.square(self.similarity))
-        logits = [[neg[i], pos[i]] for i in range(self.config['batch_size'])]
+        predictions = [[neg[i], pos[i]] for i in range(self.config['batch_size'])]
 
-        self.logits = logits
-        outputs = dict(logits=self.logits)
+        self.logits = self.similarity
+        outputs = dict(logits=self.logits, predictions=predictions)
 
         super(DSSM, self).__init__(inputs=[query, sim_query], outputs=outputs)
 

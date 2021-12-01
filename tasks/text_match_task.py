@@ -6,6 +6,7 @@ from data_processor.text_match_data_generator import TextMatchDataGenerator
 import json
 import os
 from keras_models.dnn_dssm import DSSM
+from keras_models.lstm_siamese import Siamese
 from trainer.train_base import TrainBase
 
 class TextMatchTask(TrainBase):
@@ -30,8 +31,10 @@ class TextMatchTask(TrainBase):
         :return:
         '''
         if self.config['model_name'] == 'dnn_dssm':
-
             return DSSM(self.config, vocab_size, word_vecotrs)
+
+        if self.config['model_name'] == 'lstm_siamese':
+            return Siamese(self.config, vocab_size, word_vecotrs)
         else:
             raise Exception("please choose model")
 
@@ -58,10 +61,26 @@ class TextMatchTask(TrainBase):
         '''
 
         with tf.name_scope('TextMatchTask/losses'):
+            if self.config['model_name'] == 'lstm_siamese':
+
+                #构建对比损失
+                y = tf.reshape(labels, (-1, ))
+                similarity = model_outputs['logits']
+                cond = (similarity < self.config["neg_threshold"])
+                zeros = tf.zeros_like(similarity, dtype=tf.float32)
+                ones = tf.ones_like(similarity, dtype=tf.float32)
+                squre_similarity = tf.square(similarity)
+                neg_similarity = tf.where(cond, squre_similarity, zeros)
+
+                pos_loss = y*(tf.square(ones-similarity)/4)
+                neg_loss = (ones-y)*neg_similarity
+                losses = pos_loss + neg_loss
+                loss = tf.reduce_mean(losses)
+                return loss
 
             metrics = dict([(metric.name, metric) for metric in metrics])
             losses = tf.keras.losses.sparse_categorical_crossentropy(labels,
-                                                                     tf.cast(model_outputs['logits'], tf.float32),
+                                                                     tf.cast(model_outputs['predictions'], tf.float32),
                                                                      from_logits=True)
 
             loss = tf.reduce_mean(losses)
@@ -103,10 +122,10 @@ class TextMatchTask(TrainBase):
         optimizer.apply_gradients((grad, var) for (grad, var) in zip(grads, tvars) if grad is not None)
         logs = {self.loss: loss}
         if metrics:
-            self.process_metrics(metrics, labels, outputs['logits'])
+            self.process_metrics(metrics, labels, outputs['predictions'])
             logs.update({m.name: m.result() for m in model.metrics})
         if model.compiled_metrics:
-            self.process_compiled_metrics(model.compiled_metrics, labels, outputs['logits'])
+            self.process_compiled_metrics(model.compiled_metrics, labels, outputs['predictions'])
             logs.update({m.name: m.result() for m in metrics or []})
             logs.update({m.name: m.result() for m in model.metrics})
         return logs
@@ -129,9 +148,9 @@ class TextMatchTask(TrainBase):
 
         logs = {self.loss: loss}
         if metrics:
-            self.process_metrics(metrics, labels, outputs['logits'])
+            self.process_metrics(metrics, labels, outputs['predictions'])
         if model.compiled_metrics:
-            self.process_compiled_metrics(model.compiled_metrics, labels, outputs['logits'])
+            self.process_compiled_metrics(model.compiled_metrics, labels, outputs['predictions'])
             logs.update({m.name: m.result() for m in metrics or []})
             logs.update({m.name: m.result() for m in model.metrics})
         return logs
@@ -147,12 +166,10 @@ class TextMatchTask(TrainBase):
             tf.keras.metrics.SparseCategoricalAccuracy(name='text_match_metrics')
         ]
 
-        # metrics = dict([(metric.name, metric) for metric in metrics])
-
         return metrics
 
 if __name__=='__main__':
-    with open("../model_configs/dnn_dssm.json", 'r') as fr:
+    with open("../model_configs/lstm_siamese.json", 'r') as fr:
         config = json.load(fr)
     print(config)
     text_match = TextMatchTask(config)

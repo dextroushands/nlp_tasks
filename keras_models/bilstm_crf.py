@@ -26,9 +26,9 @@ class BilstmCRF(tf.keras.Model):
             def build(self, input_shape):
                 with tf.name_scope('embedding'):
                     if not self.config['use_word2vec']:
-                        self.embedding_w = tf.keras.initializers.glorot_normal()(
+                        self.embedding_w = tf.Variable(tf.keras.initializers.glorot_normal()(
                             shape=[self.vocab_size, self.config['embedding_size']],
-                            dtype=tf.float32)
+                            dtype=tf.float32), trainable=True, name='embedding_w')
                     else:
                         self.embedding_w = tf.Variable(tf.cast(self.word_vectors, tf.float32), trainable=True,
                                                        name='embedding_w')
